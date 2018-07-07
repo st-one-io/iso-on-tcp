@@ -1,0 +1,29 @@
+{
+  "name": "iso-on-tcp",
+  "version": "1.0.0",
+  "description": "ISO-on-TCP Protocol implementation",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/netsmarttech/iso-on-tcp.git"
+  },
+  "keywords": [
+    "iso-on-tcp",
+    "isoontcp",
+    "cotp",
+    "tpdu",
+    "spdu",
+    "tpkt",
+    "siemens",
+    "s7"
+  ],
+  "author": "Guilherme Francescon <guilherme.francescon@netsmarttech.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/netsmarttech/iso-on-tcp/issues"
+  },
+  "homepage": "https://github.com/netsmarttech/iso-on-tcp#readme"
+}
