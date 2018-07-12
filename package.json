@@ -4,7 +4,8 @@
   "description": "ISO-on-TCP Protocol implementation",
   "main": "src/index.js",
   "scripts": {
-    "test": "test.js"
+    "test": "nyc --reporter=html --reporter=text --reporter=text-summary mocha --timeout=3000 test/**/**.spec.js",
+    "doc": "jsdoc -d doc/jsdoc/ -r -R README.md src/"
   },
   "repository": {
     "type": "git",
@@ -25,5 +26,11 @@
   "bugs": {
     "url": "https://github.com/netsmarttech/iso-on-tcp/issues"
   },
-  "homepage": "https://github.com/netsmarttech/iso-on-tcp#readme"
+  "homepage": "https://github.com/netsmarttech/iso-on-tcp#readme",
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "jsdoc": "^3.5.5",
+    "mocha": "^5.2.0",
+    "nyc": "^12.0.2"
+  }
 }
