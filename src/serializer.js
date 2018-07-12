@@ -19,7 +19,7 @@ const {
     Transform
 } = require('stream');
 const constants = require('./constants.json');
-
+const util = require('util');
 const debug = util.debuglog('iso-on-tcp');
 
 class ISOOnTCPSerializer extends Transform {
