@@ -147,8 +147,7 @@ class ISOOnTCPParser extends Transform {
                 ptr += var_length;
             }
 
-
-            var_params.forEach(elm => {
+            for(let elm of var_params) {
                 switch (elm.code) {
                     case constants.var_type.TPDU_SIZE:
                         obj.tpdu_size = 1 << elm.data.readUInt8(0);
@@ -164,7 +163,7 @@ class ISOOnTCPParser extends Transform {
                         cb(new Error(`Unknown or not implemented variable parameter code [${var_code}]:[${constants.var_type_desc[var_code]}]`));
                         return;
                 }
-            });
+            }
 
             // TPDU - user data
 
