@@ -17,8 +17,10 @@
 
 const ISOOnTCPParser = require('./parser.js');
 const ISOOnTCPSerializer = require('./serializer.js');
+const constants = require('./constants.json');
 
 module.exports = {
     ISOOnTCPParser,
-    ISOOnTCPSerializer
-}
+    ISOOnTCPSerializer,
+    constants
+};
