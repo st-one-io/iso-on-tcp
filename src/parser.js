@@ -71,22 +71,25 @@ class ISOOnTCPParser extends Transform {
 
             ptr += 4;
 
-            // TPDU
-
-            let tpduStart = ptr;
-
-            let tpdu_length = chunk.readUInt8(ptr) + 1; //+1, because the length itself is not included in protocol
-            let tpdu_type = chunk.readUInt8(ptr + 1) >> 4;
-
-            ptr += 2;
-
             let obj = {
-                type: tpdu_type,
                 tpkt: {
                     version: tpkt_version,
                     reserved: tpkt_reserved
                 }
             };
+
+            // TPDU
+
+            let tpduStart = ptr;
+            let tpdu_length = chunk.readUInt8(ptr) + 1; //+1, because the length itself is not included in protocol
+            ptr += 1;
+
+            // TPDU - fixed part
+
+            let tpdu_type = chunk.readUInt8(ptr) >> 4;
+            ptr += 1;
+
+            obj.type = tpdu_type;
 
             switch (tpdu_type) {
                 case constants.tpdu_type.CR:
@@ -108,32 +111,6 @@ class ISOOnTCPParser extends Transform {
                     }
                     ptr += 1;
 
-                    //TODO improvement: do boundary checks while parsing the variable data fields
-                    while ((ptr - tpduStart) < tpdu_length) {
-                        let var_code = chunk.readUInt8(ptr);
-                        ptr += 1;
-                        let var_length = chunk.readUInt8(ptr);
-                        ptr += 1;
-
-                        switch (var_code) {
-                            case constants.var_type.TPDU_SIZE:
-                                obj.tpdu_size = 1 << chunk.readUInt8(ptr);
-                                break;
-                            case constants.var_type.SRC_TSAP:
-                                obj.srcTSAP = chunk.readUInt16BE(ptr);
-                                break;
-                            case constants.var_type.DST_TSAP:
-                                obj.dstTSAP = chunk.readUInt16BE(ptr);
-                                break;
-                            default:
-                                //for now, throw if we don't have it implemented
-                                cb(new Error(`Unknown or not implemented variable parameter code [${var_code}]:[${constants.var_type_desc[var_code]}]`));
-                                return;
-                        }
-
-                        ptr += var_length;
-                    }
-
                     break;
 
                 case constants.tpdu_type.DT:
@@ -151,6 +128,44 @@ class ISOOnTCPParser extends Transform {
                     cb(new Error(`Unknown or not implemented TPDU type [${tpdu_type}]:[${constants.tpdu_type_desc[tpdu_type]}]`));
                     return;
             }
+
+            // TPDU - variable part
+
+            let var_params = [];
+
+            //TODO improvement: do boundary checks while parsing the variable data fields
+            while ((ptr - tpduStart) < tpdu_length) {
+                let var_code = chunk.readUInt8(ptr);
+                ptr += 1;
+                let var_length = chunk.readUInt8(ptr);
+                ptr += 1;
+                var_params.push({
+                    code: var_code,
+                    data: chunk.slice(ptr, ptr + var_length)
+                });
+                ptr += var_length;
+            }
+
+
+            var_params.forEach(elm => {
+                switch (elm.code) {
+                    case constants.var_type.TPDU_SIZE:
+                        obj.tpdu_size = 1 << elm.data.readUInt8(0);
+                        break;
+                    case constants.var_type.SRC_TSAP:
+                        obj.srcTSAP = elm.data.readUInt16BE(0);
+                        break;
+                    case constants.var_type.DST_TSAP:
+                        obj.dstTSAP = elm.data.readUInt16BE(0);
+                        break;
+                    default:
+                        //for now, throw if we don't have it implemented
+                        cb(new Error(`Unknown or not implemented variable parameter code [${var_code}]:[${constants.var_type_desc[var_code]}]`));
+                        return;
+                }
+            });
+
+            // TPDU - user data
 
             let payloadStart = tpduStart + tpdu_length; //inclusive
             let payloadEnd = tpktStart + tpkt_length; //exclusive

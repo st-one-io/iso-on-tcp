@@ -13,17 +13,17 @@
         "DT": 15
     },
     "tpdu_type_desc": {
-        "1": "ED Expedited Data", 
-        "2": "EA Expedited Data Acknowledgement", 
-        "4": "UD", 
-        "5": "RJ Reject", 
-        "6": "AK Data Acknowledgement", 
-        "7": "ER TPDU Error", 
-        "8": "DR Disconnect Request", 
-        "12": "DC Disconnect Confirm", 
-        "13": "CC Connect Confirm", 
-        "14": "CR Connect Request", 
-        "15": "DT Data" 
+        "1": "ED Expedited Data",
+        "2": "EA Expedited Data Acknowledgement",
+        "4": "UD",
+        "5": "RJ Reject",
+        "6": "AK Data Acknowledgement",
+        "7": "ER TPDU Error",
+        "8": "DR Disconnect Request",
+        "12": "DC Disconnect Confirm",
+        "13": "CC Connect Confirm",
+        "14": "CR Connect Request",
+        "15": "DT Data"
     },
     "DR_reason": {
         "0": "Reason not specified",
