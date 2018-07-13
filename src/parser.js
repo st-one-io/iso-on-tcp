@@ -76,7 +76,7 @@ class ISOOnTCPParser extends Transform {
             let tpduStart = ptr;
 
             let tpdu_length = chunk.readUInt8(ptr) + 1; //+1, because the length itself is not included in protocol
-            let tpdu_type = chunk.readUInt8(ptr + 1);
+            let tpdu_type = chunk.readUInt8(ptr + 1) >> 4;
 
             ptr += 2;
 
@@ -116,14 +116,14 @@ class ISOOnTCPParser extends Transform {
                         ptr += 1;
 
                         switch (var_code) {
-                            case constants.var_code.TPDU_SIZE:
+                            case constants.var_type.TPDU_SIZE:
                                 obj.tpdu_size = 1 << chunk.readUInt8(ptr);
                                 break;
-                            case constants.var_code.SRC_TSAP:
-                                obj.srcTSAP = readUInt16BE(ptr);
+                            case constants.var_type.SRC_TSAP:
+                                obj.srcTSAP = chunk.readUInt16BE(ptr);
                                 break;
-                            case constants.var_code.DST_TSAP:
-                                obj.dstTSAP = readUInt16BE(ptr);
+                            case constants.var_type.DST_TSAP:
+                                obj.dstTSAP = chunk.readUInt16BE(ptr);
                                 break;
                             default:
                                 //for now, throw if we don't have it implemented

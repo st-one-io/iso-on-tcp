@@ -41,10 +41,12 @@ class ISOOnTCPSerializer extends Transform {
 
         if (!chunk.type) {
             cb(new Error('Missing telegram type'));
+            return;
         }
 
         if (chunk.payload !== undefined && !Buffer.isBuffer(chunk.payload)) {
             cb(new Error('Payload is not of type Buffer'));
+            return;
         }
 
 
@@ -64,7 +66,7 @@ class ISOOnTCPSerializer extends Transform {
                 let source = parseInt(chunk.source) || 0;
 
                 let reason_or_class;
-                if (constants.tpdu_type.DR) {
+                if (chunk.type === constants.tpdu_type.DR) {
                     reason_or_class = parseInt(chunk.reason) || 0;
                 } else {
                     reason_or_class = ((parseInt(chunk.class) || 0) & 0x0f) << 4;
@@ -100,21 +102,21 @@ class ISOOnTCPSerializer extends Transform {
                 ptr += 1;
 
                 if (chunk.tpdu_size !== undefined) {
-                    buf.writeUInt8(constants.tpdu_type.TPDU_SIZE, ptr);
+                    buf.writeUInt8(constants.var_type.TPDU_SIZE, ptr);
                     buf.writeUInt8(1, ptr + 1); //length
                     buf.writeUInt8(highestOrderBit(chunk.tpdu_size), ptr + 2);
                     ptr += 3;
                 }
 
                 if (chunk.srcTSAP !== undefined) {
-                    buf.writeUInt8(constants.tpdu_type.SRC_TSAP, ptr);
+                    buf.writeUInt8(constants.var_type.SRC_TSAP, ptr);
                     buf.writeUInt8(2, ptr + 1); //length
                     buf.writeUInt16BE(chunk.srcTSAP, ptr + 2);
                     ptr += 4;
                 }
 
                 if (chunk.dstTSAP !== undefined) {
-                    buf.writeUInt8(constants.tpdu_type.DST_TSAP, ptr);
+                    buf.writeUInt8(constants.var_type.DST_TSAP, ptr);
                     buf.writeUInt8(2, ptr + 1); //length
                     buf.writeUInt16BE(chunk.dstTSAP, ptr + 2);
                     ptr += 4;
@@ -152,7 +154,7 @@ class ISOOnTCPSerializer extends Transform {
 
         //tpdu
         buf.writeUInt8(tpdu_length, 4); //length
-        buf.writeUInt8(chunk.type, 5); //type
+        buf.writeUInt8((chunk.type << 4) & 0xff, 5); //type
 
         if (chunk.payload) {
             chunk.payload.copy(buf, 5 + tpdu_length);
@@ -168,7 +170,7 @@ class ISOOnTCPSerializer extends Transform {
 function highestOrderBit(num) {
     if (!num) return 0;
 
-    let ret = 1;
+    let ret = 0;
 
     //while(num >>= 1) ret <<= 1;
     while (num >>= 1) ret++;
