@@ -64,6 +64,27 @@ describe('ISO-on-TCP Parser', () => {
         parser.write(Buffer.from('0000000000080000f0000008000803c0', 'hex'));
     });
 
+    it('should decode a telegram even if header is split in two buffers', (done) => {
+        let parser = new ISOOnTCPParser();
+        parser.on('data', (data) => {
+            expect(data).to.be.deep.equal({
+                tpkt: {
+                    version: 3,
+                    reserved: 0
+                },
+                type: 0x0f, //DT
+                tpdu_number: 0,
+                last_data_unit: true,
+                payload: Buffer.from('32010000000000080000f0000008000803c0', 'hex')
+            });
+            done();
+        });
+
+        // TPKT + COTP + Payload
+        parser.write(Buffer.from('0300', 'hex'));
+        parser.write(Buffer.from('001902f08032010000000000080000f0000008000803c0', 'hex'));
+    });
+
     it('should decode two consecutive telegrams in the same Buffer', (done) => {
         let parser = new ISOOnTCPParser();
         let res = [];
