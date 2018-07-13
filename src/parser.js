@@ -86,12 +86,13 @@ class ISOOnTCPParser extends Transform {
 
             // TPDU - fixed part
 
-            let tpdu_type = chunk.readUInt8(ptr) >> 4;
+            let type_and_credit = chunk.readUInt8(ptr);
             ptr += 1;
 
-            obj.type = tpdu_type;
+            obj.type = type_and_credit >> 4;
+            obj.credit = type_and_credit & 0xf;
 
-            switch (tpdu_type) {
+            switch (obj.type) {
                 case constants.tpdu_type.CR:
                 case constants.tpdu_type.CC:
                 case constants.tpdu_type.DR:
@@ -102,7 +103,7 @@ class ISOOnTCPParser extends Transform {
                     ptr += 2;
 
                     let varfield = chunk.readUInt8(ptr);
-                    if (tpdu_type === constants.tpdu_type.DR) {
+                    if (obj.type === constants.tpdu_type.DR) {
                         obj.reason = varfield;
                     } else {
                         obj.class = varfield >> 4;
@@ -125,7 +126,7 @@ class ISOOnTCPParser extends Transform {
 
                 default:
                     //throw if we can't handle it
-                    cb(new Error(`Unknown or not implemented TPDU type [${tpdu_type}]:[${constants.tpdu_type_desc[tpdu_type]}]`));
+                    cb(new Error(`Unknown or not implemented TPDU type [${obj.type}]:[${constants.tpdu_type_desc[obj.type]}]`));
                     return;
             }
 

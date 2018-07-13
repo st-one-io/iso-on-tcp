@@ -153,8 +153,11 @@ class ISOOnTCPSerializer extends Transform {
         buf.writeUInt16BE(tpkt_length, 2); //length
 
         //tpdu
+        let type_and_credit = (chunk.type << 4) & 0xff;
+        type_and_credit |= (parseInt(chunk.credit) || 0) & 0xf;
+
         buf.writeUInt8(tpdu_length, 4); //length
-        buf.writeUInt8((chunk.type << 4) & 0xff, 5); //type
+        buf.writeUInt8(type_and_credit, 5); //type and credit
 
         if (chunk.payload) {
             chunk.payload.copy(buf, 5 + tpdu_length);

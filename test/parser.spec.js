@@ -52,6 +52,7 @@ describe('ISO-on-TCP Parser', () => {
                     reserved: 0
                 },
                 type: 0x0f, //DT
+                credit: 0,
                 tpdu_number: 0,
                 last_data_unit: true,
                 payload: Buffer.from('32010000000000080000f0000008000803c0', 'hex')
@@ -73,6 +74,7 @@ describe('ISO-on-TCP Parser', () => {
                     reserved: 0
                 },
                 type: 0x0f, //DT
+                credit: 0,
                 tpdu_number: 0,
                 last_data_unit: true,
                 payload: Buffer.from('32010000000000080000f0000008000803c0', 'hex')
@@ -97,6 +99,7 @@ describe('ISO-on-TCP Parser', () => {
                     reserved: 0
                 },
                 type: 0x0f, //DT
+                credit: 0,
                 tpdu_number: 0,
                 last_data_unit: true,
                 payload: Buffer.from('32010000000000080000f0000008000803c0', 'hex')
@@ -106,6 +109,7 @@ describe('ISO-on-TCP Parser', () => {
                     reserved: 0
                 },
                 type: 0x0f, //DT
+                credit: 0,
                 tpdu_number: 0,
                 last_data_unit: true,
                 payload: Buffer.from('320300000000000800000000f0000002000200f0', 'hex')
@@ -129,6 +133,7 @@ describe('ISO-on-TCP Parser', () => {
                     reserved: 0
                 },
                 type: 0x0f, //DT
+                credit: 0,
                 tpdu_number: 0,
                 last_data_unit: true,
                 payload: Buffer.from('32010000000000080000f0000008000803c0', 'hex')
@@ -138,6 +143,7 @@ describe('ISO-on-TCP Parser', () => {
                     reserved: 0
                 },
                 type: 0x0f, //DT
+                credit: 0,
                 tpdu_number: 0,
                 last_data_unit: true,
                 payload: Buffer.from('320300000000000800000000f0000002000200f0', 'hex')
@@ -159,6 +165,7 @@ describe('ISO-on-TCP Parser', () => {
                     reserved: 0
                 },
                 type: 0x0f, //DT
+                credit: 0,
                 tpdu_number: 0,
                 last_data_unit: true,
                 payload: Buffer.from('32010000000000080000f0000008000803c0', 'hex')
@@ -179,6 +186,7 @@ describe('ISO-on-TCP Parser', () => {
                     reserved: 0
                 },
                 type: 0x0e, //CR
+                credit: 0,
                 destination: 0,
                 source: 2,
                 class: 0,
@@ -204,6 +212,7 @@ describe('ISO-on-TCP Parser', () => {
                     reserved: 0
                 },
                 type: 0x0e, //CR
+                credit: 0,
                 destination: 0,
                 source: 1,
                 class: 0,
@@ -229,6 +238,7 @@ describe('ISO-on-TCP Parser', () => {
                     reserved: 0
                 },
                 type: 0x0d, //CC
+                credit: 0,
                 destination: 2,
                 source: 0x4431,
                 class: 0,
@@ -254,6 +264,7 @@ describe('ISO-on-TCP Parser', () => {
                     reserved: 0
                 },
                 type: 0x0d, //CC
+                credit: 0,
                 destination: 1,
                 source: 0xa0e3,
                 class: 0,
