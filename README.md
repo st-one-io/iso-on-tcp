@@ -20,6 +20,7 @@ This is a (still) partial implementation of the **ISO-on-TCP** protocol. This is
 
  - https://tools.ietf.org/html/rfc1006
  - https://tools.ietf.org/html/rfc905
+ - https://wiki.wireshark.org/S7comm
  - https://github.com/boundary/wireshark/blob/master/epan/dissectors/packet-ositp.c
  - https://github.com/szpajder/dumpvdl2/blob/master/cotp.c
  - https://github.com/mushorg/conpot/blob/master/conpot/protocols/s7comm/cotp.py
