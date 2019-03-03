@@ -30,7 +30,6 @@ class ISOOnTCPSerializer extends Transform {
 
         super(opts);
 
-        this._nBuffer = null;
         debug("new ISOOnTCPSerializer");
     }
 
