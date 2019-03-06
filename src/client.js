@@ -16,9 +16,8 @@
 */
 /*jshint esversion: 6, node: true*/
 
-const {
-    Duplex
-} = require('stream');
+const { EventEmitter } = require('events');
+const { Duplex } = require('stream');
 const util = require('util');
 const debug = util.debuglog('iso-on-tcp');
 const net = require('net');
@@ -39,7 +38,7 @@ const CONN_ERROR = 3;
  * @emits error when an error has occured when processing either incoming data
  * @emits message is emitted whenever a message is received with the parsed message as a parameter
  */
-class ISOOnTCPClient extends Duplex {
+class ISOOnTCPClient extends EventEmitter {
 
     /**
      * 
@@ -50,12 +49,12 @@ class ISOOnTCPClient extends Duplex {
      * @param {number} [opts.dstTSAP=0] the destination TSAP
      * @param {number} [opts.sourceRef] our reference. If not provided, an random one is generated
      */
-    constructor(stream, opts){
+    constructor(stream, opts) {
         debug("new ISOOnTCPClient", opts);
 
         super();
 
-        if (!(stream instanceof Duplex)){
+        if (!(stream instanceof Duplex)) {
             throw new Error("Parameter 'stream' must be a duplex stream")
         }
 
@@ -66,8 +65,8 @@ class ISOOnTCPClient extends Duplex {
         this.tpduSize = opts.tpduSize || 1024;
         this.srcTSAP = opts.srcTSAP || 0;
         this.dstTSAP = opts.dstTSAP || 0;
-        
-        if(opts.sourceRef === undefined){
+
+        if (opts.sourceRef === undefined) {
             this._sourceRef = Math.floor(Math.random() * 0xffff)
         } else {
             this._sourceRef = opts.sourceRef
@@ -81,24 +80,25 @@ class ISOOnTCPClient extends Duplex {
         this._parser.on('data', d => this._incomingData(d))
 
         this.stream.pipe(this._parser);
-        //this._serializer.pipe(this.stream);
+        this._serializer.pipe(this.stream);
 
         this._initParams();
     }
 
     _initParams() {
         this._inBuffer = [];
+        this._outBuffer = [];
         this._tpduSize = this.tpduSize;
         this._connectionState = CONN_DISCONNECTED;
         this._destRef = 0;
     }
 
     connect(cb) {
-        if (this._connectionState > CONN_DISCONNECTED){
+        if (this._connectionState > CONN_DISCONNECTED) {
             throw new Error('Client not in disconnected state');
         }
 
-        if (typeof cb === 'function'){
+        if (typeof cb === 'function') {
             this.once('connect', cb);
         }
 
@@ -146,16 +146,21 @@ class ISOOnTCPClient extends Duplex {
 
         switch (data.type) {
             case constants.tpdu_type.CC:
-                
+
                 this._destRef = data.source
                 //negotiate tdpu size
                 this._tpduSize = Math.min(data.tpdu_size, this.tpduSize);
-                
+
                 //TODO - validate src/dst TSAP?
                 //TODO - validate src/dst references?
 
                 this._connectionState = CONN_CONNECTED;
-                this._serializer.pipe(this.stream);
+
+                // send any queued messages
+                for (const buf of this._outBuffer) {
+                    this._sendDT(buf);
+                }
+                this._outBuffer = [];
 
                 process.nextTick(() => this.emit('connect'));
 
@@ -166,12 +171,14 @@ class ISOOnTCPClient extends Duplex {
                 if (data.last_data_unit) {
                     let res = Buffer.concat(this._inBuffer);
                     this._inBuffer = [];
-                    this.push(res);
+                    this.emit('data', {
+                        payload: res
+                    });
                 }
                 break;
 
             default:
-                //TODO
+            //TODO
         }
     }
 
@@ -183,50 +190,65 @@ class ISOOnTCPClient extends Duplex {
         return this._destRef;
     }
 
-    _destroy() {
-        
+    get negotiatedTpduSize() {
+        return this._tpduSize;
     }
 
-    _read(size) {
-        debug("ISOOnTCPClient _read", size);
-
-        //TODO handle backpressure (https://nodejs.org/api/stream.html#stream_readable_push_chunk_encoding)
-    }
-
-    /**
-     * 
-     * @param {Buffer} chunk 
-     * @param {string} encoding 
-     * @param {Function} cb 
-     */
-    _write(chunk, encoding, cb) {
-        debug("ISOOnTCPClient _write", chunk);
-
-        if (!(chunk instanceof Buffer)) {
-            cb(new Error('Data must be of Buffer type'))
-            return;
-        }
+    _sendDT(chunk) {
 
         //split buffer in multiple telegrams if buffer is bigger than negotiated tdpu size
         let chunkArr;
-        if(chunk.length > this._tpduSize) {   
+        if (chunk.length > this._tpduSize) {
             chunkArr = [];
-            for (let i = 0; i < chunk.length; i += this._tpduSize){
+            for (let i = 0; i < chunk.length; i += this._tpduSize) {
                 chunkArr.push(chunk.slice(i, Math.min(i + this._tpduSize, chunk.length)));
             }
         } else {
             chunkArr = [chunk];
         }
 
-        for(let i = 0; i < chunkArr.length; i++){
+        for (let i = 0; i < chunkArr.length; i++) {
             this._serializer.write({
                 type: constants.tpdu_type.DT,
                 last_data_unit: i === (chunkArr.length - 1),
                 payload: chunkArr[i]
             });
         }
+    }
 
-        cb();
+    write(chunk, cb) {
+        debug("ISOOnTCPClient write", chunk);
+
+        if (!(chunk instanceof Buffer)) {
+            return cbOrEvent(this, cb, new Error('Data must be of Buffer type'));
+        }
+
+        if (this._connectionState > CONN_CONNECTED) {
+            return cbOrEvent(this, cb, new Error("Can't write data after end"));
+        }
+
+        // buffer the outgoing messsages until we're connected
+        if (this._connectionState < CONN_CONNECTED) {
+            debug("ISOOnTCPClient write not-connected");
+            this._outBuffer.push(chunk);
+            return;
+        }
+
+        this._sendDT(chunk);
+
+        if (typeof cb === 'function') {
+            cb();
+        }
     }
 
 }
+
+function cbOrEvent(self, cb, err) {
+    if (typeof cb === 'function') {
+        cb(err);
+    } else {
+        self.emit('error', err);
+    }
+}
+
+module.exports = ISOOnTCPClient;
