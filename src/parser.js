@@ -169,7 +169,7 @@ class ISOOnTCPParser extends Transform {
 
             let payloadStart = tpduStart + tpdu_length; //inclusive
             let payloadEnd = tpktStart + tpkt_length; //exclusive
-            if (payloadEnd > payloadStart) {
+            if (payloadEnd >= payloadStart) {
                 obj.payload = chunk.slice(payloadStart, payloadEnd);
             }
 

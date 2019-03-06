@@ -194,7 +194,8 @@ describe('ISO-on-TCP Parser', () => {
                 no_flow_control: false,
                 tpdu_size: 1024,
                 srcTSAP: 0x0100,
-                dstTSAP: 0x0102
+                dstTSAP: 0x0102,
+                payload: Buffer.alloc(0)
             });
             done();
         });
@@ -220,7 +221,8 @@ describe('ISO-on-TCP Parser', () => {
                 no_flow_control: false,
                 tpdu_size: 1024,
                 srcTSAP: 0x1000,
-                dstTSAP: 0x2700
+                dstTSAP: 0x2700,
+                payload: Buffer.alloc(0)
             });
             done();
         });
@@ -246,7 +248,8 @@ describe('ISO-on-TCP Parser', () => {
                 no_flow_control: false,
                 tpdu_size: 1024,
                 srcTSAP: 0x0100,
-                dstTSAP: 0x0102
+                dstTSAP: 0x0102,
+                payload: Buffer.alloc(0)
             });
             done();
         });
@@ -272,7 +275,8 @@ describe('ISO-on-TCP Parser', () => {
                 no_flow_control: false,
                 tpdu_size: 512,
                 srcTSAP: 0x1000,
-                dstTSAP: 0x2700
+                dstTSAP: 0x2700,
+                payload: Buffer.alloc(0)
             });
             done();
         });
