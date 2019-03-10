@@ -22,6 +22,31 @@ const constants = require('./constants.json');
 const util = require('util');
 const debug = util.debuglog('iso-on-tcp');
 
+/**
+ * Transform Stream that takes in javascript objects that
+ * represents ISO-on-TCP telegrams and serializes them into
+ * buffers
+ *
+ * @example <caption>Example of a CR telegram</caption>
+ * serializer.write({
+ *     type: 0x0e, //CR
+ *     destination: 0,
+ *     source: 2,
+ *     //class: 0, //default if not present
+ *     //extended_format: false, //default if not present
+ *     //no_flow_control: false, //default if not present
+ *     tpdu_size: 1024,
+ *     srcTSAP: 0x0100,
+ *     dstTSAP: 0x0102
+ * });
+ *
+ * @example <caption>Example of a DT telegram</caption>
+ * serializer.write({
+ *     type: constants.tpdu_type.DT,
+ *     last_data_unit: true,
+ *     payload: Buffer.from('32010000000000080000f0000008000803c0', 'hex')
+ * });
+ */
 class ISOOnTCPSerializer extends Transform {
 
     constructor(opts) {

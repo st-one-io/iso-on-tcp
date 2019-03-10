@@ -1,15 +1,21 @@
-Glossary
-========
+# ISO-on-TCP Protocol Details
+
+These are personal notes about the ISO-on-TCP protocol
+
+## Glossary
+
 - **TPDU** - transport protocol data units
 - **TPKT** - TPDU packet
 - **TSAP** - Transport service access point
-- **SPDU** - Session protocol data unit
+- **SPDU** - Session protocol data unit (user data)
 - **COTP** - Connection-oriented Transport Protocol
+
+## TPKT
 
 TPKT = packet header + TPDU + SPDU
 
-Packet header
--------------
+### Packet header
+
        0                   1                   2                   3
        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -19,31 +25,22 @@ Packet header
  -  8 bits - Reserved
  - 16 bits - Packet length - the length of entire packet in octets, including packet-header
 
-TPDU
-----
- -  8 bits - Header
- -  4 bits - Code
- - [varies]
+### TPDU
 
 The format of the TPDU depends on the type of a TPDU. All TPDUs start with a fixed-part header length
 and the code.  The information following after the code varies, depending on the value of the code
- - CR(0xe): connect request
- - CC(0xd): connect confirm
- - DR(0x8): disconnect request
- - DT(0xf): data
- - ED(0x1): expedited data
+| Type | Code  | Description        |
+| ---- | ----- | ------------------ |
+| CR   | `0xe` | connect request    |
+| CC   | `0xd` | connect confirm    |
+| DR   | `0x8` | disconnect request |
+| DT   | `0xf` | data               |
+| ED   | `0x1` | expedited data     |
 
-DR reason codes
- - 1: Congestion at TSAP
- - 2: Session entity not attached to TSAP
- - 3: Address unknown (at TCP connect time)
- - 128+0: Normal disconnect initiated by the session entity
- - 128+1: Remote transport entity congestion at connect request time
- - 128+3: Connection negotiation failed
- - 128+5: Protocol Error
- - 128+8: Connection request refused on this network connection
+#### CC / CR / DR
 
 Format for CR/CC or DR types
+
 
         0                   1                   2                   3
         0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -58,6 +55,8 @@ Format for CR/CC or DR types
        |    ...        |   user data   |      ...      |      ...      |
        |    ...        |      ...      |      ...      |      ...      |
        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
  -  8 bits - TPDU-header length in octets including parameters but excluding the header 
              length field and user data (if any)
  -  4 bits - Code
@@ -73,7 +72,23 @@ For a CR or CC packet
 For a DR packet
  -  8 bits - reason
 
+
+##### DR reason codes
+ | Code  | Reason                                                       |
+ | ----- | ------------------------------------------------------------ |
+ | 1     | Congestion at TSAP                                           |
+ | 2     | Session entity not attached to TSAP                          |
+ | 3     | Address unknown (at TCP connect time)                        |
+ | 128+0 | Normal disconnect initiated by the session entity            |
+ | 128+1 | Remote transport entity congestion at connect request time   |
+ | 128+3 | Connection negotiation failed                                |
+ | 128+5 | Protocol Error                                               |
+ | 128+8 | Connection request refused on this network connection        |
+
+#### DT / ED
+
 The format of a DT or ED TPDU is:
+
 
        0                   1                   2                   3
        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -85,6 +100,7 @@ The format of a DT or ED TPDU is:
       |      ...      |      ...      |      ...      |      ...      |
       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
+
  -  8 bits - TPDU-header length in octets including parameters but excluding the header 
              length field and user data (if any)
  -  4 bits - Code
@@ -93,6 +109,9 @@ The format of a DT or ED TPDU is:
     - 0: Last data unit?
     - 1~15: TPDU number
 
+## Examples
+
+```js
 self.connectReq = new Buffer([
 
     // TPKT header
@@ -152,3 +171,4 @@ self.negotiatePDU = new Buffer([
     0x00, 0x08, //max AmQ (parallel jobs with ACK) called: 8
     0x03, 0xc0  //PDU length: 960
 ]);
+```

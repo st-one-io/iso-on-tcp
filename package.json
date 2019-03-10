@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "test": "nyc --reporter=html --reporter=text --reporter=text-summary mocha --timeout=3000 test/**/**.spec.js",
-    "doc": "jsdoc -d doc/jsdoc/ -r -R README.md src/"
+    "doc": "jsdoc -d doc/jsdoc/ -c doc/jsdoc.json -r -R README.md src/"
   },
   "repository": {
     "type": "git",
@@ -28,6 +28,7 @@
   },
   "homepage": "https://github.com/netsmarttech/iso-on-tcp#readme",
   "devDependencies": {
+    "@types/node": "^11.11.0",
     "chai": "^4.1.2",
     "jsdoc": "^3.5.5",
     "mocha": "^5.2.0",

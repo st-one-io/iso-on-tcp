@@ -22,6 +22,10 @@ const constants = require('./constants.json');
 const util = require('util');
 const debug = util.debuglog('iso-on-tcp');
 
+/**
+ * Transform Stream that parses buffers into Javascript
+ * objects according to the ISO-on-TCP protocol
+ */
 class ISOOnTCPParser extends Transform {
 
     constructor(opts) {

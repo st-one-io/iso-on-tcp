@@ -23,6 +23,11 @@ const ISOOnTCPClient = require('./client.js');
 const constants = require('./constants.json');
 
 /**
+ * Creates a TCP socket using 
+ * {@linkcode https://nodejs.org/api/net.html#net_net_createconnection_port_host_connectlistener net.createConnection()} 
+ * and passes it to a new instance of {@link ISOOnTCPClient}, calling 
+ * {@link ISOOnTCPClient~connect} when the TCP socket emits the
+ * connect event. The <code>handleStreamEvents</code> option is set on the created client
  * 
  * @param {object} opts options to the constructor
  * @param {number} opts.port the destination TCP port it should connect to
@@ -31,7 +36,8 @@ const constants = require('./constants.json');
  * @param {number} [opts.srcTSAP=0] the source TSAP
  * @param {number} [opts.dstTSAP=0] the destination TSAP
  * @param {number} [opts.sourceRef] our reference. If not provided, an random one is generated
- * @param {function} [cb] an optional callback that will be called when the connection is done
+ * @param {function} [cb] an optional callback that will be added to the 'connect' event of the returned instance of {@link ISOOnTCPClient}
+ * @returns {ISOOnTCPClient}
  */
 function createConnection(opts, cb) {
     opts = opts || {};

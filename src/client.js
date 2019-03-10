@@ -16,11 +16,9 @@
 */
 /*jshint esversion: 6, node: true*/
 
-const { EventEmitter } = require('events');
 const { Duplex } = require('stream');
 const util = require('util');
 const debug = util.debuglog('iso-on-tcp');
-const net = require('net');
 
 //@ts-ignore
 const constants = require('./constants.json');
@@ -34,9 +32,10 @@ const CONN_DISCONNECTING = 3;
 const CONN_ERROR = 3;
 
 /**
- * @emits connect when the connection has been successfully negotiated
- * @emits error when an error has occured when processing either incoming data
- * @emits message is emitted whenever a message is received with the parsed message as a parameter
+ * Duplex stream that handles the lifecycle of an ISO-on-TCP connection
+ * as a client.
+ * 
+ * @class
  */
 class ISOOnTCPClient extends Duplex {
 
@@ -47,8 +46,8 @@ class ISOOnTCPClient extends Duplex {
      * @param {number} [opts.tpduSize=1024] the tpdu size. Must be a power of 2
      * @param {number} [opts.srcTSAP=0] the source TSAP
      * @param {number} [opts.dstTSAP=0] the destination TSAP
-     * @param {number} [opts.sourceRef] our reference. If not provided, an random one is generated
-     * @param {number} [opts.handleStreamEvents] If we should handle and forward events that happened on the underlying stream
+     * @param {number} [opts.sourceRef=random] our reference. If not provided, an random one is generated
+     * @param {boolean} [opts.handleStreamEvents=false] If we should handle and forward events that happened on the underlying stream
      */
     constructor(stream, opts) {
         debug("new ISOOnTCPClient", opts);
@@ -99,6 +98,12 @@ class ISOOnTCPClient extends Duplex {
         this._destRef = 0;
     }
 
+    /**
+     * Initiates the connection process
+     * 
+     * @param {function} cb a callback that is added to the {@link ISOOnTCPClient#connect} event
+     * @throws an error if the client is not in a disconnected state
+     */
     connect(cb) {
         if (this._connectionState > CONN_DISCONNECTED) {
             throw new Error('Client not in disconnected state');
