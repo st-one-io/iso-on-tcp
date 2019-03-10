@@ -15,14 +15,41 @@
 */
 /*jshint esversion: 6, node: true*/
 
+const net = require('net');
+
 const ISOOnTCPParser = require('./parser.js');
 const ISOOnTCPSerializer = require('./serializer.js');
 const ISOOnTCPClient = require('./client.js');
 const constants = require('./constants.json');
 
+/**
+ * 
+ * @param {object} opts options to the constructor
+ * @param {number} opts.port the destination TCP port it should connect to
+ * @param {string} [opts.host='localhost'] the destination host it should connect to
+ * @param {number} [opts.tpduSize=1024] the tpdu size. Must be a power of 2
+ * @param {number} [opts.srcTSAP=0] the source TSAP
+ * @param {number} [opts.dstTSAP=0] the destination TSAP
+ * @param {number} [opts.sourceRef] our reference. If not provided, an random one is generated
+ * @param {function} [cb] an optional callback that will be called when the connection is done
+ */
+function createConnection(opts, cb) {
+    opts = opts || {};
+    opts.handleStreamEvents = true;
+
+    let client;
+    let socket = net.createConnection(opts.port, opts.host || 'localhost', () => {
+        client.connect(cb);
+    });
+    client = new ISOOnTCPClient(socket, opts);
+    
+    return client;
+}
+
 module.exports = {
     ISOOnTCPParser,
     ISOOnTCPSerializer,
     ISOOnTCPClient,
-    constants
+    constants,
+    createConnection
 };
