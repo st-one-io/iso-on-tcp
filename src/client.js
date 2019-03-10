@@ -38,7 +38,7 @@ const CONN_ERROR = 3;
  * @emits error when an error has occured when processing either incoming data
  * @emits message is emitted whenever a message is received with the parsed message as a parameter
  */
-class ISOOnTCPClient extends EventEmitter {
+class ISOOnTCPClient extends Duplex {
 
     /**
      * 
@@ -48,6 +48,7 @@ class ISOOnTCPClient extends EventEmitter {
      * @param {number} [opts.srcTSAP=0] the source TSAP
      * @param {number} [opts.dstTSAP=0] the destination TSAP
      * @param {number} [opts.sourceRef] our reference. If not provided, an random one is generated
+     * @param {number} [opts.handleStreamEvents] If we should handle and forward events that happened on the underlying stream
      */
     constructor(stream, opts) {
         debug("new ISOOnTCPClient", opts);
@@ -81,6 +82,11 @@ class ISOOnTCPClient extends EventEmitter {
 
         this.stream.pipe(this._parser);
         this._serializer.pipe(this.stream);
+
+        if (opts.handleStreamEvents) {
+            this.stream.on('error', e => this.emit('error', e));
+            this.stream.on('close', e => this.emit('close', e));
+        }
 
         this._initParams();
     }
@@ -142,7 +148,7 @@ class ISOOnTCPClient extends EventEmitter {
     _incomingData(data) {
         debug("ISOOnTCPClient _incomingData", data);
 
-        process.nextTick(() => this.emit('message', data));
+        process.nextTick(() => this.emit('raw-message', data));
 
         switch (data.type) {
             case constants.tpdu_type.CC:
@@ -171,14 +177,15 @@ class ISOOnTCPClient extends EventEmitter {
                 if (data.last_data_unit) {
                     let res = Buffer.concat(this._inBuffer);
                     this._inBuffer = [];
-                    this.emit('data', {
+                    this.emit('message', {
                         payload: res
                     });
+                    this.push(res);
                 }
                 break;
 
             default:
-            //TODO
+                //TODO
         }
     }
 
@@ -216,39 +223,36 @@ class ISOOnTCPClient extends EventEmitter {
         }
     }
 
-    write(chunk, cb) {
-        debug("ISOOnTCPClient write", chunk);
+    _read(size) {
+        debug("ISOOnTCPClient _read", size);
+        //TODO handle backpressure
+    }
+
+    _write(chunk, encoding, cb) {
+        debug("ISOOnTCPClient _write", chunk);
 
         if (!(chunk instanceof Buffer)) {
-            return cbOrEvent(this, cb, new Error('Data must be of Buffer type'));
+            cb(new Error('Data must be of Buffer type'));
+            return;
         }
 
         if (this._connectionState > CONN_CONNECTED) {
-            return cbOrEvent(this, cb, new Error("Can't write data after end"));
+            cb(new Error("Can't write data after end"));
+            return;
         }
 
         // buffer the outgoing messsages until we're connected
         if (this._connectionState < CONN_CONNECTED) {
             debug("ISOOnTCPClient write not-connected");
             this._outBuffer.push(chunk);
+            cb();
             return;
         }
 
         this._sendDT(chunk);
-
-        if (typeof cb === 'function') {
-            cb();
-        }
+        cb();
     }
 
-}
-
-function cbOrEvent(self, cb, err) {
-    if (typeof cb === 'function') {
-        cb(err);
-    } else {
-        self.emit('error', err);
-    }
 }
 
 module.exports = ISOOnTCPClient;

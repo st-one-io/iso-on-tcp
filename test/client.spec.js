@@ -85,7 +85,7 @@ describe('ISO-on-TCP Client', () => {
             expect(client.negotiatedTpduSize).to.be.equals(512, "Failed to negotiate tpdu size");
         })
         client.on('data', d => {
-            expect(d.payload.toString('hex')).to.be.equals('320300000400000800000000f0000001000100f0');
+            expect(d.toString('hex')).to.be.equals('320300000400000800000000f0000001000100f0');
             done();
         })
         client.on('error', e => { throw e });
@@ -127,7 +127,7 @@ describe('ISO-on-TCP Client', () => {
             expect(client.negotiatedTpduSize).to.be.equals(512, "Failed to negotiate tpdu size");
         })
         client.on('data', d => {
-            expect(d.payload.toString('hex')).to.be.equals('320300000400000800000000f0000001000100f0');
+            expect(d.toString('hex')).to.be.equals('320300000400000800000000f0000001000100f0');
             done();
         })
         client.on('error', e => { throw e });
