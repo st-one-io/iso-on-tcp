@@ -1,6 +1,6 @@
 {
   "name": "iso-on-tcp",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.0",
   "description": "ISO-on-TCP Protocol implementation",
   "main": "src/index.js",
   "scripts": {
