@@ -29,7 +29,7 @@ const CONN_DISCONNECTED = 0;
 const CONN_CONNECTING = 1;
 const CONN_CONNECTED = 2;
 const CONN_DISCONNECTING = 3;
-const CONN_ERROR = 3;
+const CONN_FINISHED = 99;
 
 /**
  * Duplex stream that handles the lifecycle of an ISO-on-TCP connection
@@ -47,7 +47,6 @@ class ISOOnTCPClient extends Duplex {
      * @param {number} [opts.srcTSAP=0] the source TSAP
      * @param {number} [opts.dstTSAP=0] the destination TSAP
      * @param {number} [opts.sourceRef=random] our reference. If not provided, an random one is generated
-     * @param {boolean} [opts.handleStreamEvents=false] If we should handle and forward events that happened on the underlying stream
      */
     constructor(stream, opts) {
         debug("new ISOOnTCPClient", opts);
@@ -82,12 +81,38 @@ class ISOOnTCPClient extends Duplex {
         this.stream.pipe(this._parser);
         this._serializer.pipe(this.stream);
 
-        if (opts.handleStreamEvents) {
-            this.stream.on('error', e => this.emit('error', e));
-            this.stream.on('close', e => this.emit('close', e));
-        }
+        this.stream.on('error', e => this._onStreamError(e));
+        this.stream.on('close', () => this._onStreamClose());
 
         this._initParams();
+    }
+
+    /**
+     * our reference code
+     */
+    get sourceReference() {
+        return this._sourceRef;
+    }
+
+    /**
+     * the destination reference if we're connected, null otherwhise
+     */
+    get destinationReference() {
+        return this.isConnected ? this._destRef : null;
+    }
+
+    /**
+     * the negotiated TPDU size, being the smallest of ours and theirs TPDU size
+     */
+    get negotiatedTpduSize() {
+        return this._tpduSize;
+    }
+
+    /**
+     * whether we're currently connected or not
+     */
+    get isConnected() {
+        return this._connectionState === CONN_CONNECTED;
     }
 
     _initParams() {
@@ -98,56 +123,31 @@ class ISOOnTCPClient extends Duplex {
         this._destRef = 0;
     }
 
-    /**
-     * Initiates the connection process
-     * 
-     * @param {function} cb a callback that is added to the {@link ISOOnTCPClient#connect} event
-     * @throws an error if the client is not in a disconnected state
-     */
-    connect(cb) {
-        if (this._connectionState > CONN_DISCONNECTED) {
-            throw new Error('Client not in disconnected state');
-        }
+    _onStreamError(e) {
+        debug("ISOOnTCPClient _onStreamError", e);
 
-        if (typeof cb === 'function') {
-            this.once('connect', cb);
-        }
-
-        this._connectionState = CONN_CONNECTING;
-
-        this._serializer.write({
-            type: constants.tpdu_type.CR,
-            destination: this._destRef,
-            source: this._sourceRef,
-            //class: 0,
-            //extended_format: false,
-            //no_flow_control: false,
-            tpdu_size: this.tpduSize,
-            srcTSAP: this.srcTSAP,
-            dstTSAP: this.dstTSAP
-        });
+        this.emit('error', e);
+        this._destroy();
     }
 
-    disconnect() {
-        debug("ISOOnTCPClient disconnect");
+    _onStreamClose() {
+        debug("ISOOnTCPClient _onStreamClose");
 
-        //TODO
+        this._destroy();
     }
 
     _onParserError(e) {
         debug("ISOOnTCPClient _onParserError", e);
 
-        this._connectionState = CONN_ERROR;
-
         this.emit('error', e);
+        this._destroy();
     }
 
     _onSerializerError(e) {
         debug("ISOOnTCPClient _onSerializerError", e);
 
-        this._connectionState = CONN_ERROR;
-
         this.emit('error', e);
+        this._destroy();
     }
 
     _incomingData(data) {
@@ -189,21 +189,23 @@ class ISOOnTCPClient extends Duplex {
                 }
                 break;
 
+            case constants.tpdu_type.DR:
+                // 0: Reason not specified
+                // 128: Normal disconnect initiated by the session entity
+                if (!(data.reason == 0 || data.reason == 128)){
+                    let errDescr = constants.DR_reason[data.reason] || '<Unknown reason code>';
+                    this.emit('error', new Error(`Received a disconnect request with reason [${data.reason}]: ${errDescr}`));
+                }
+                if (this.stream.end) {
+                    this.stream.end();
+                } else {
+                    this._destroy();
+                }
+                break;
+
             default:
-                //TODO
+                
         }
-    }
-
-    get sourceReference() {
-        return this._sourceRef;
-    }
-
-    get destinationReference() {
-        return this._destRef;
-    }
-
-    get negotiatedTpduSize() {
-        return this._tpduSize;
     }
 
     _sendDT(chunk) {
@@ -256,6 +258,76 @@ class ISOOnTCPClient extends Duplex {
 
         this._sendDT(chunk);
         cb();
+    }
+
+    _final(cb) {
+        debug("ISOOnTCPClient _finish");
+
+        this.close();
+        cb();
+    }
+
+    _destroy() {
+        debug("ISOOnTCPClient _destroy");
+
+        //call this only once
+        if (this._connectionState >= CONN_FINISHED) return;
+        this._connectionState = CONN_FINISHED;
+
+        if (this.stream && this.stream.destroy) {
+            this.stream.destroy();
+        }
+
+        this.emit('close');
+    }
+
+    // ----- public methods
+
+    /**
+     * Initiates the connection process
+     * 
+     * @param {function} cb a callback that is added to the {@link ISOOnTCPClient#connect} event
+     * @throws an error if the client is not in a disconnected state
+     */
+    connect(cb) {
+        if (this._connectionState > CONN_DISCONNECTED) {
+            throw new Error('Client not in disconnected state');
+        }
+
+        if (typeof cb === 'function') {
+            // @ts-ignore
+            this.once('connect', cb);
+        }
+
+        this._connectionState = CONN_CONNECTING;
+
+        this._serializer.write({
+            type: constants.tpdu_type.CR,
+            destination: this._destRef,
+            source: this._sourceRef,
+            //class: 0,
+            //extended_format: false,
+            //no_flow_control: false,
+            tpdu_size: this.tpduSize,
+            srcTSAP: this.srcTSAP,
+            dstTSAP: this.dstTSAP
+        });
+    }
+
+    /**
+     * 
+     */
+    close() {
+        debug("ISOOnTCPClient disconnect");
+
+        if (this._connectionState == CONN_CONNECTED){
+            this._connectionState = CONN_DISCONNECTING;
+            this._serializer.write({
+                type: constants.tpdu_type.DR
+            });
+        } else {
+            this._destroy();
+        }
     }
 
 }
