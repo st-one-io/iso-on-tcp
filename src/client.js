@@ -41,12 +41,13 @@ class ISOOnTCPClient extends Duplex {
 
     /**
      * 
-     * @param {Duplex} stream the underlying stream used to 
-     * @param {object} [opts] options to the constructor
-     * @param {number} [opts.tpduSize=1024] the tpdu size. Must be a power of 2
-     * @param {number} [opts.srcTSAP=0] the source TSAP
-     * @param {number} [opts.dstTSAP=0] the destination TSAP
-     * @param {number} [opts.sourceRef=random] our reference. If not provided, an random one is generated
+     * @param {Duplex}  stream the underlying stream used to 
+     * @param {object}  [opts] options to the constructor
+     * @param {number}  [opts.tpduSize=1024] the tpdu size. Must be a power of 2
+     * @param {number}  [opts.srcTSAP=0] the source TSAP
+     * @param {number}  [opts.dstTSAP=0] the destination TSAP
+     * @param {number}  [opts.sourceRef=random] our reference. If not provided, an random one is generated
+     * @param {boolean} [opts.forceClose=false] skip sending Disconnect Requests on disconnecting, and forcibly closes the connection instead
      */
     constructor(stream, opts) {
         debug("new ISOOnTCPClient", opts);
@@ -64,6 +65,7 @@ class ISOOnTCPClient extends Duplex {
         this.tpduSize = opts.tpduSize || 1024;
         this.srcTSAP = opts.srcTSAP || 0;
         this.dstTSAP = opts.dstTSAP || 0;
+        this.forceClose = !!opts.forceClose;
 
         if (opts.sourceRef === undefined) {
             this._sourceRef = Math.floor(Math.random() * 0xffff)
@@ -83,6 +85,7 @@ class ISOOnTCPClient extends Duplex {
 
         this.stream.on('error', e => this._onStreamError(e));
         this.stream.on('close', () => this._onStreamClose());
+        this.stream.on('end', () => this._onStreamEnd());
 
         this._initParams();
     }
@@ -133,6 +136,14 @@ class ISOOnTCPClient extends Duplex {
     _onStreamClose() {
         debug("ISOOnTCPClient _onStreamClose");
 
+        this.push(null); //signalizes end of read stream, emits 'end' event
+        this._destroy();
+    }
+
+    _onStreamEnd() {
+        debug("ISOOnTCPClient _onStreamEnd");
+
+        this.push(null); //signalizes end of read stream, emits 'end' event
         this._destroy();
     }
 
@@ -274,9 +285,20 @@ class ISOOnTCPClient extends Duplex {
         if (this._connectionState >= CONN_FINISHED) return;
         this._connectionState = CONN_FINISHED;
 
-        if (this.stream && this.stream.destroy) {
-            this.stream.destroy();
+        function destroyStream(stream) {
+            debug("ISOOnTCPClient _destroy destroyStream");
+
+            if(!stream) return;
+            if(stream.destroy){
+                stream.destroy();
+            } else if (stream._destroy){
+                stream._destroy();
+            }
         }
+
+        destroyStream(this._serializer);
+        destroyStream(this.stream);
+        destroyStream(this._parser);
 
         this.emit('close');
     }
@@ -320,7 +342,7 @@ class ISOOnTCPClient extends Duplex {
     close() {
         debug("ISOOnTCPClient disconnect");
 
-        if (this._connectionState == CONN_CONNECTED){
+        if (this._connectionState == CONN_CONNECTED && !this.forceClose){
             this._connectionState = CONN_DISCONNECTING;
             this._serializer.write({
                 type: constants.tpdu_type.DR

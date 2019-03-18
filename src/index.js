@@ -36,12 +36,12 @@ const constants = require('./constants.json');
  * @param {number} [opts.srcTSAP=0] the source TSAP
  * @param {number} [opts.dstTSAP=0] the destination TSAP
  * @param {number} [opts.sourceRef] our reference. If not provided, an random one is generated
+ * @param {boolean} [opts.forceClose=false] skip sending Disconnect Requests on disconnecting, and forcibly closes the connection instead
  * @param {function} [cb] an optional callback that will be added to the 'connect' event of the returned instance of {@link ISOOnTCPClient}
  * @returns {ISOOnTCPClient}
  */
 function createConnection(opts, cb) {
     opts = opts || {};
-    opts.handleStreamEvents = true;
 
     let client;
     let socket = net.createConnection(opts.port, opts.host || 'localhost', () => {
