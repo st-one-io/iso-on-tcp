@@ -122,7 +122,7 @@ class ISOOnTCPSerializer extends Transform {
                 ptr += 2;
                 buf.writeUInt16BE(source, ptr); //source
                 ptr += 2;
-                buf.writeUInt16BE(reason_or_class, ptr); //source
+                buf.writeUInt8(reason_or_class, ptr); //source
                 ptr += 1;
 
                 if (chunk.tpdu_size !== undefined) {

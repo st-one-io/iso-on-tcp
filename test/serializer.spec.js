@@ -118,4 +118,20 @@ describe('ISO-on-TCP Serializer', () => {
             dstTSAP: 0x0102
         });
     });
+
+    it('should encode a Disconnection Request (DR) message', (done) => {
+        let serializer = new ISOOnTCPSerializer();
+        serializer.on('data', (data) => {
+            // TPKT + COTP + Payload
+            expect(data.toString('hex')).to.be.equal('0300000b' + '06800002443180');
+            done();
+        });
+
+        serializer.write({
+            type: 0x08, //CC
+            destination: 2,
+            source: 0x4431,
+            reason: 128 //normal disconnection
+        });
+    });
 });
