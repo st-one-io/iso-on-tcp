@@ -19,7 +19,7 @@ const constants = require('./constants.json');
  * connect event. The <code>handleStreamEvents</code> option is set on the created client
  * 
  * @param {object} opts options to the constructor
- * @param {number} opts.port the destination TCP port it should connect to
+ * @param {number} [opts.port=102] the destination TCP port it should connect to
  * @param {string} [opts.host='localhost'] the destination host it should connect to
  * @param {number} [opts.tpduSize=1024] the tpdu size. Must be a power of 2
  * @param {number} [opts.srcTSAP=0] the source TSAP
@@ -29,11 +29,10 @@ const constants = require('./constants.json');
  * @param {function} [cb] an optional callback that will be added to the 'connect' event of the returned instance of {@link ISOOnTCPClient}
  * @returns {ISOOnTCPClient}
  */
-function createConnection(opts, cb) {
-    opts = opts || {};
-
+function createConnection(opts = {}, cb) {
+    
     let client;
-    let socket = net.createConnection(opts.port, opts.host || 'localhost', () => {
+    let socket = net.createConnection(opts.port || 102, opts.host || 'localhost', () => {
         client.connect(cb);
     });
     client = new ISOOnTCPClient(socket, opts);
