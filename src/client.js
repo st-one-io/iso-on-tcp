@@ -36,6 +36,7 @@ class ISOOnTCPClient extends Duplex {
      * @param {number}  [opts.dstTSAP=0] the destination TSAP
      * @param {number}  [opts.sourceRef=random] our reference. If not provided, an random one is generated
      * @param {boolean} [opts.forceClose=false] skip sending Disconnect Requests on disconnecting, and forcibly closes the connection instead
+     * @param {(msg: object) => boolean} [opts.validateConnection] a function that will be called to validate the connection parameters.
      */
     constructor(stream, opts) {
         debug("new ISOOnTCPClient", opts);
@@ -54,6 +55,7 @@ class ISOOnTCPClient extends Duplex {
         this.srcTSAP = opts.srcTSAP || 0;
         this.dstTSAP = opts.dstTSAP || 0;
         this.forceClose = !!opts.forceClose;
+        this.validateConnection = (typeof opts.validateConnection === "function") ? opts.validateConnection : () => true;
 
         if (opts.sourceRef === undefined) {
             this._sourceRef = Math.floor(Math.random() * 0xffff)
@@ -155,14 +157,29 @@ class ISOOnTCPClient extends Duplex {
         process.nextTick(() => this.emit('raw-message', data));
 
         switch (data.type) {
+            case constants.tpdu_type.CR:
             case constants.tpdu_type.CC:
+
+                if (!this.validateConnection(data)) {
+                    debug("ISOOnTCPClient _incomingData CR-CC-not-valid");
+                    this.close();
+                    return;
+                }
 
                 this._destRef = data.source
                 //negotiate tdpu size
                 this._tpduSize = Math.min(data.tpdu_size, this.tpduSize);
 
-                //TODO - validate src/dst TSAP?
-                //TODO - validate src/dst references?
+                if (data.type == constants.tpdu_type.CR) {
+                    this._serializer.write({
+                        type: constants.tpdu_type.CC,
+                        destination: this._destRef,
+                        source: this._sourceRef,
+                        tpdu_size: this._tpduSize,
+                        srcTSAP: this.srcTSAP,
+                        dstTSAP: this.dstTSAP
+                    });
+                }
 
                 this._connectionState = CONN_CONNECTED;
 
