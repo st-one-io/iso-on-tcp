@@ -5,6 +5,8 @@ This is a (still) partial implementation of the ISO-on-TCP protocol (RFC1006). I
 The code currently lacks the implementation of parts of the protocol, as it's currently focused on the parts needed for the [nodeS7](https://github.com/plcpeople/nodeS7) project. But as long as it follows the protocol, pull requests will be happily accepted. Please check the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 
+This library was created by [Smart-Tech](https://netsmarttech.com) as part of the [ST-One](https://netsmarttech.com/page/st-one) project.
+
 ## Usage
 
 The easiest way to create a connection is to use the `createConnection()` method
@@ -51,4 +53,6 @@ These are some abbreviations commonly found in the references that may be useful
 
 
 ## License
-Copyright 2019 Smart-Tech, [Apache 2.0 license](LICENSE).
+Copyright: (c) 2018-2020, Smart-Tech, Guilherme Francescon Cittolin <guilherme.francescon@netsmarttech.com>
+
+GNU General Public License v3.0+ (see [LICENSE](LICENSE) or https://www.gnu.org/licenses/gpl-3.0.txt)
