@@ -8,10 +8,12 @@ const { expect } = require('chai');
 const ISOOnTCPClient = require('../src/client.js');
 const constants = require('../src/constants.json');
 const { Duplex } = require('stream');
+const makeDuplexPair = require('./duplexPair');
 
 describe('ISO-on-TCP Client', () => {
 
     it('should throw without a source stream', () => {
+        //@ts-ignore 
         expect(() => new ISOOnTCPClient()).to.throw()
     });
 
@@ -121,4 +123,53 @@ describe('ISO-on-TCP Client', () => {
         client.on('error', e => { throw e });
         client.connect();
     });
+
+    it('should be able to be a server for itselt', (done) => {
+        let opts = {
+            sourceRef: 1,
+            srcTSAP: 0x1000,
+            dstTSAP: 0x2700
+        };
+        let testDataClient = Buffer.from('hello server');
+        let testDataServer = Buffer.from('hello client');
+        let clientConnected = false;
+        let serverConnected = false;
+        let serverClosed = false;
+
+        let {clientSide, serverSide} = makeDuplexPair();
+        let client = new ISOOnTCPClient(clientSide, opts);
+        let server = new ISOOnTCPClient(serverSide);
+
+        //['connect', 'data', 'close', 'finish', 'end'].forEach(evt => client.on(evt, d => console.log(`CLIENT #${evt}`, d)));
+        //['connect', 'data', 'close', 'finish', 'end'].forEach(evt => server.on(evt, d => console.log(`SERVER #${evt}`, d)));
+
+        client.on('data', d => {
+            expect(d.toString('hex')).to.be.equals(testDataServer.toString('hex'));
+            expect(clientConnected, "client didn't connect").to.be.true;
+            expect(serverConnected, "server didn't connect").to.be.true;
+            client.close();
+        })
+        client.on('close', () => {
+            process.nextTick(() => {
+                expect(serverClosed, "server didn't close").to.be.true;
+                done();
+            });
+        })
+        client.on('connect', () => {
+            clientConnected = true;
+            client.write(testDataClient);
+        });
+        client.on('error', e => { throw e });
+
+        server.on('data', d => {
+            expect(d.toString('hex')).to.be.equals(testDataClient.toString('hex'));
+            server.write(testDataServer);
+        })
+        server.on('close', () => { serverClosed = true });
+        server.on('connect', () => { serverConnected = true });
+        server.on('error', e => { throw e });
+
+        client.connect();
+    });
+
 });

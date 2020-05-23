@@ -114,6 +114,7 @@ class ISOOnTCPClient extends Duplex {
         this._tpduSize = this.tpduSize;
         this._connectionState = CONN_DISCONNECTED;
         this._destRef = 0;
+        this._drSent = false;
     }
 
     _onStreamError(e) {
@@ -211,6 +212,11 @@ class ISOOnTCPClient extends Duplex {
                 if (!(data.reason == 0 || data.reason == 128)){
                     let errDescr = constants.DR_reason[data.reason] || '<Unknown reason code>';
                     this.emit('error', new Error(`Received a disconnect request with reason [${data.reason}]: ${errDescr}`));
+                }
+                if (!this._drSent) {
+                    this._serializer.write({
+                        type: constants.tpdu_type.DR
+                    });
                 }
                 if (this.stream.end) {
                     this.stream.end();
@@ -313,7 +319,7 @@ class ISOOnTCPClient extends Duplex {
     /**
      * Initiates the connection process
      * 
-     * @param {function} cb a callback that is added to the {@link ISOOnTCPClient#connect} event
+     * @param {function} [cb] a callback that is added to the {@link ISOOnTCPClient#connect} event
      * @throws an error if the client is not in a disconnected state
      */
     connect(cb) {
@@ -342,7 +348,8 @@ class ISOOnTCPClient extends Duplex {
     }
 
     /**
-     * 
+     * Closes the connection by sending a DR telegram. If forceClose was set
+     * to true, DR is not sent and the connection is abruptly disconnected instead
      */
     close() {
         debug("ISOOnTCPClient disconnect");
@@ -352,6 +359,7 @@ class ISOOnTCPClient extends Duplex {
             this._serializer.write({
                 type: constants.tpdu_type.DR
             });
+            this._drSent = true;
         } else {
             this._destroy();
         }
