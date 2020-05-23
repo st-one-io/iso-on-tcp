@@ -28,7 +28,12 @@ describe('ISO-on-TCP Parser', () => {
             done();
         });
 
-        parser.write({});
+        try {
+            parser.write({});
+        } catch (err) {
+            expect(err).to.be.an.instanceOf(TypeError)
+            done();
+        }
     });
 
     it('should decode a telegram received in two parts', (done) => {
