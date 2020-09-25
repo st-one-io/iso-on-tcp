@@ -21,7 +21,7 @@
     "siemens",
     "s7"
   ],
-  "author": "Guilherme Francescon <guilherme.francescon@netsmarttech.com>",
+  "author": "Guilherme Francescon <guilherme@st-one.io>",
   "license": "GPL-3.0-or-later",
   "bugs": {
     "url": "https://github.com/netsmarttech/iso-on-tcp/issues"
