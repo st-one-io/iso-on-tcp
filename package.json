@@ -29,8 +29,8 @@
   "homepage": "https://github.com/netsmarttech/iso-on-tcp#readme",
   "devDependencies": {
     "chai": "^4.2.0",
-    "jsdoc": "^3.6.4",
-    "mocha": "^7.2.0",
-    "nyc": "^15.0.1"
+    "jsdoc": "^3.6.6",
+    "mocha": "^8.1.3",
+    "nyc": "^15.1.0"
   }
 }
