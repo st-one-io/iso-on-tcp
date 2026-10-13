@@ -49,6 +49,13 @@ class ISOOnTCPParser extends Transform {
 
             // TPKT header
 
+            // we don't have enough data for the TPKT header, let's back it up
+            if (chunk.length - ptr < 4) {
+                this._nBuffer = chunk.slice(ptr);
+                cb();
+                return;
+            }
+
             let tpktStart = ptr;
 
             let tpkt_version = chunk.readUInt8(ptr);
@@ -61,6 +68,12 @@ class ISOOnTCPParser extends Transform {
             if (chunk.length < (ptr + tpkt_length)) {
                 this._nBuffer = chunk.slice(ptr);
                 cb();
+                return;
+            }
+
+            // TPKT length must cover the fixed TPKT and TPDU header fields
+            if (tpkt_length < 6) {
+                cb(new Error(`Invalid TPKT length [${tpkt_length}]`));
                 return;
             }
 
@@ -173,12 +186,24 @@ class ISOOnTCPParser extends Transform {
             for(let elm of var_params) {
                 switch (elm.code) {
                     case constants.var_type.TPDU_SIZE:
+                        if (elm.data.length < 1) {
+                            cb(new Error(`Not enough bytes for variable parameter [${elm.code}]`));
+                            return;
+                        }
                         obj.tpdu_size = 1 << elm.data.readUInt8(0);
                         break;
                     case constants.var_type.SRC_TSAP:
+                        if (elm.data.length < 2) {
+                            cb(new Error(`Not enough bytes for variable parameter [${elm.code}]`));
+                            return;
+                        }
                         obj.srcTSAP = elm.data.readUInt16BE(0);
                         break;
                     case constants.var_type.DST_TSAP:
+                        if (elm.data.length < 2) {
+                            cb(new Error(`Not enough bytes for variable parameter [${elm.code}]`));
+                            return;
+                        }
                         obj.dstTSAP = elm.data.readUInt16BE(0);
                         break;
                     default:
